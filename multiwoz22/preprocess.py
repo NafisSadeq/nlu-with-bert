@@ -22,7 +22,7 @@ def da2triples(dialog_act):
 def preprocess(mode):
     assert mode == 'all' or mode == 'usr' or mode == 'sys'
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(cur_dir, '../../../../data/multiwoz22')
+    data_dir = os.path.join(cur_dir, 'raw')
     processed_data_dir = os.path.join(cur_dir, 'data/{}_data'.format(mode))
     if not os.path.exists(processed_data_dir):
         os.makedirs(processed_data_dir)
