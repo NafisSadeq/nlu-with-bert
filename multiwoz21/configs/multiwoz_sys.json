@@ -1,8 +1,8 @@
 {
-  "data_dir": "multiwoz/data/sys_data",
-  "output_dir": "multiwoz/output/sys",
-  "zipped_model_path": "multiwoz/output/sys/bert_multiwoz_sys.zip",
-  "log_dir": "multiwoz/log/sys",
+  "data_dir": "multiwoz21/data/sys_data",
+  "output_dir": "multiwoz21/output/sys",
+  "zipped_model_path": "multiwoz21/output/sys/bert_multiwoz21_sys.zip",
+  "log_dir": "multiwoz21/log/sys",
   "DEVICE": "cuda:0",
   "seed": 2019,
   "cut_sen_len": 40,

@@ -1,8 +1,8 @@
 {
-  "data_dir": "multiwoz/data/usr_data",
-  "output_dir": "multiwoz/output/usr_context",
-  "zipped_model_path": "multiwoz/output/usr_context/bert_multiwoz_usr_context.zip",
-  "log_dir": "multiwoz/log/usr_context",
+  "data_dir": "multiwoz22/data/usr_data",
+  "output_dir": "multiwoz22/output/usr_context",
+  "zipped_model_path": "multiwoz22/output/usr_context/bert_multiwoz22_usr_context.zip",
+  "log_dir": "multiwoz22/log/usr_context",
   "DEVICE": "cuda:0",
   "seed": 2019,
   "cut_sen_len": 40,

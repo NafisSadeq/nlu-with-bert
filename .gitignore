@@ -14,10 +14,10 @@ __pycache__
 .vscode
 
 # data
-*/raw
 */data
 */log
 */output
+*/config/dynamic_config.json
 
 
 # log
