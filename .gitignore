@@ -1,0 +1,46 @@
+# extras
+Pipfile*
+results*
+
+*.pyc
+__pycache__
+
+.DS_Store
+
+# pycharm
+.idea
+
+# vscode
+.vscode
+
+# data
+*/raw
+*/data
+*/log
+*/output
+
+
+# log
+**/log/**
+*.log
+
+# save
+**/save/**
+
+# .bak.py
+*.bak.py
+
+# compile files
+build
+dist
+convlab2.egg-info
+
+# configs
+
+
+.ipynb_checkpoints
+
+
+
+*.egg-info
+pre-trained-models/
