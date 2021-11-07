@@ -5,6 +5,16 @@ import sys
 from collections import Counter,OrderedDict
 from tqdm import tqdm
 
+def transformIntentName(word):
+    index=0
+    for i in range(1,len(word)):
+        c=word[i]
+        # print(i,c)
+        if(c.isupper()):
+            index=i
+            return word[i:]+"-"+word[:i]
+    return word[index:]+"+"+word[:index]
+
 def read_zipped_json(filepath, filename):
     archive = zipfile.ZipFile(filepath, 'r')
     return json.load(archive.open(filename))
@@ -69,19 +79,20 @@ def preprocess(mode):
                 actions = []
                 for frame in turn["frames"]:
                     if "state" in frame:
-                        intents.append(frame["state"]["active_intent"])
+                        intent_name=transformIntentName(frame["state"]["active_intent"])
+                        intents.append(intent_name)
                         if "actions" in frame:
                             assert "state" in frame
-                            slots.extend([[frame["state"]["active_intent"], i['slot'], i['values'][0] if len(i['values']) else '?'] for i in frame["actions"]])
+                            slots.extend([[intent_name, i['slot'], i['values'][0] if len(i['values']) else '?'] for i in frame["actions"]])
                             actions.extend([i['act'] for i in frame["actions"]])
                         for s in frame['slots']:
                             for i, t in enumerate(tokens):
                                 if s['start'] == tokens_map[(i, t)][0]:
                                     assert "state" in frame
-                                    tags[i] = f"B-{frame['state']['active_intent']}+{s['slot']}"
+                                    tags[i] = f"B-{intent_name}+{s['slot']}"
                                 elif tokens_map[(i, t)][0] > s['start'] and tokens_map[(i, t)][0] <= s['exclusive_end']:
                                     assert "state" in frame
-                                    tags[i] = f"I-{frame['state']['active_intent']}+{s['slot']}"                                
+                                    tags[i] = f"I-{intent_name}+{s['slot']}"                              
 
                 processed_data[key].append([tokens, tags, intents, slots, context[-context_size:]])
 
