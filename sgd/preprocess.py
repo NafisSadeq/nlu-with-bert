@@ -83,7 +83,7 @@ def preprocess(mode):
                         intents.append(intent_name)
                         if "actions" in frame:
                             assert "state" in frame
-                            slots.extend([[intent_name, i['slot'], i['values'][0] if len(i['values']) else '?'] for i in frame["actions"]])
+                            slots.extend([[intent_name, i['slot'], i['values'][0]] for i in frame["actions"] if len(i['values'])>0])
                             actions.extend([i['act'] for i in frame["actions"]])
                         for s in frame['slots']:
                             for i, t in enumerate(tokens):
