@@ -107,8 +107,35 @@ def preprocess(mode):
         sorted_intent_dict = OrderedDict(sorted(dict(Counter(all_intent)).items(), key=lambda t: t[1],reverse=True))
         sorted_slot_dict = OrderedDict(sorted(dict(Counter(all_slots)).items(), key=lambda t: t[1],reverse=True))
 
+        all_intent_new=[]
+        all_slot_new=[]
+        all_tags_new=[]
+
+        new_sample_set=[]
+        for i in range(len(processed_data[key])):
+            item = processed_data[key][i]
+            item_intent_old=item[2]
+            item_intent_new=[]
+            # item_slot_old=item[3]
+            # item_slot_new=[]
+
+            for intent in item_intent_old:
+                if(sorted_intent_dict[intent]>20):
+                    item_intent_new.append(intent)
+                    all_intent_new.append(intent)
+
+            # for slot in item_slot_old:
+            #     slot_str=slot[0] + "+" + slot[1]
+            #     if(slot_str in sorted_slot_dict and sorted_slot_dict[slot_str]>10):
+            #         item_slot_new.append(slot)
+            #         all_slot_new.append(slot_str)
+
+            if(len(item_intent_old)==len(item_intent_new)):
+                new_sample_set.append(item)
+        processed_data[key]=new_sample_set
+
         all_da = [x[0] for x in dict(Counter(all_da)).items() if x[1]]
-        all_intent = [x[0] for x in dict(Counter(all_intent)).items() if x[1]]
+        all_intent = [x[0] for x in dict(Counter(all_intent_new)).items() if x[1]]
         all_slots = [x[0] for x in dict(Counter(all_slots)).items() if x[1]]
         all_tag = [x[0] for x in dict(Counter(all_tag)).items() if x[1]]
 
