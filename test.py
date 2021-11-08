@@ -3,11 +3,13 @@ import os
 import json
 import random
 import numpy as np
+import zipfile
 import torch
 from dataloader import Dataloader
-from jointBERT import JointBERT
+from biLSTM import BiLSTM
 from collections import OrderedDict
 from postprocess import is_slot_da, calculateF1, calculateF1perIntent, calculateF1perSlot, recover_intent, recover_slot
+
 
 def set_seed(seed):
     random.seed(seed)
@@ -50,7 +52,7 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim)
+    model = BiLSTM(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim)
     model.load_state_dict(torch.load(os.path.join(output_dir, 'pytorch_model.bin'), DEVICE))
     model.to(DEVICE)
     model.eval()

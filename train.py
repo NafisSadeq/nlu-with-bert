@@ -6,9 +6,9 @@ import random
 import numpy as np
 import zipfile
 import torch
-from transformers import AdamW, get_linear_schedule_with_warmup
 from dataloader import Dataloader
-from jointBERT import JointBERT
+from torch.optim import Adam
+from biLSTM import BiLSTM
 from postprocess import is_slot_da, calculateF1, calculateF1perIntent, calculateF1perSlot, recover_intent, recover_slot
 
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(log_dir)
 
-    model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim, dataloader.intent_weight)
+    model = BiLSTM(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim, dataloader.intent_weight)
     model.to(DEVICE)
 
     if config['model']['finetune']:
@@ -67,10 +67,8 @@ if __name__ == '__main__':
             {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay) and p.requires_grad],
              'weight_decay': 0.0}
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=config['model']['learning_rate'],
+        optimizer = Adam(optimizer_grouped_parameters, lr=config['model']['learning_rate'],
                           eps=config['model']['adam_epsilon'])
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=config['model']['warmup_steps'],
-                                                    num_training_steps=config['model']['max_step'])
     else:
         for n, p in model.named_parameters():
             if 'bert' in n:
@@ -105,8 +103,6 @@ if __name__ == '__main__':
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
-        if config['model']['finetune']:
-            scheduler.step()  # Update learning rate schedule
         model.zero_grad()
         if step % check_step == 0:
             train_slot_loss = train_slot_loss / check_step

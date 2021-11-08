@@ -1,0 +1,27 @@
+{
+  "data_dir": "multiwoz21/data/all_data",
+  "output_dir": "multiwoz21/output/all",
+  "zipped_model_path": "multiwoz21/output/all/bilstm_multiwoz_all.zip",
+  "log_dir": "multiwoz21/log/all",
+  "DEVICE": "cuda:0",
+  "seed": 2019,
+  "cut_sen_len": 40,
+  "use_bert_tokenizer": true,
+  "model": {
+    "finetune": false,
+    "context": false,
+    "context_grad": false,
+    "pretrained_weights": "glove/glove.6B.300d.txt",
+    "check_step": 1000,
+    "max_step": 10000,
+    "batch_size": 128,
+    "learning_rate": 1e-3,
+    "adam_epsilon": 1e-8,
+    "warmup_steps": 0,
+    "weight_decay": 0.0,
+    "dropout": 0.1,
+    "hidden_units": 512,
+    "embed_size": 300,
+    "num_layers": 2
+  }
+}

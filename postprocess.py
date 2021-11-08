@@ -158,23 +158,6 @@ def recover_intent(dataloader, intent_logits):
             intents.append(intent)
     return intents
 
-
-# def recover_slot(dataloader, tag_logits, tag_mask_tensor, ori_word_seq, new2ori):
-#     max_seq_len = tag_logits.size(0)
-#     intents = []
-#     tags = []
-#     for j in range(1, max_seq_len-1):
-#         if tag_mask_tensor[j] == 1:
-#             value, tag_id = torch.max(tag_logits[j], dim=-1)
-#             tags.append(dataloader.id2tag[tag_id.item()])
-#     recover_tags = []
-#     for i, tag in enumerate(tags):
-#         if new2ori[i] >= len(recover_tags):
-#             recover_tags.append(tag)
-#     tag_intent = tag2triples(ori_word_seq, recover_tags)
-#     intents += tag_intent
-#     return intents
-
 def recover_slot(dataloader, intent_logits, tag_logits, tag_mask_tensor, ori_word_seq, new2ori):
     # tag_logits = [sequence_length, tag_dim]
     # intent_logits = [intent_dim]
@@ -189,14 +172,18 @@ def recover_slot(dataloader, intent_logits, tag_logits, tag_mask_tensor, ori_wor
             value = "none"
             intents.append([intent, slot, value])
     tags = []
-    for j in range(1, max_seq_len-1):
+    for j in range(max_seq_len):
         if tag_mask_tensor[j] == 1:
             value, tag_id = torch.max(tag_logits[j], dim=-1)
             tags.append(dataloader.id2tag[tag_id.item()])
     recover_tags = []
-    for i, tag in enumerate(tags):
-        if new2ori[i] >= len(recover_tags):
-            recover_tags.append(tag)
+    if new2ori is not None:
+        recover_tags = []
+        for i, tag in enumerate(tags):
+            if new2ori[i] >= len(recover_tags):
+                recover_tags.append(tag)
+    else:
+        recover_tags = tags
     tag_intent = tag2triples(ori_word_seq, recover_tags)
     intents += tag_intent
     return intents
