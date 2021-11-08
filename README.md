@@ -51,7 +51,7 @@ The model will be saved under `output_dir` of config_file. Also, it will be zipp
 Run evaluation code by running command below
 
 ```sh
-$ python test.py --config_path multiwoz/configs/multiwoz_all_context.json
+$ python test.py --config_path multiwoz21/configs/multiwoz_all_context.json
 ```
 
 The result (`output.json`) will be saved under `output_dir` of config_file. 
