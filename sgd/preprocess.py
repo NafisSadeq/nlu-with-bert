@@ -116,19 +116,11 @@ def preprocess(mode):
             item = processed_data[key][i]
             item_intent_old=item[2]
             item_intent_new=[]
-            # item_slot_old=item[3]
-            # item_slot_new=[]
-
+     
             for intent in item_intent_old:
                 if(sorted_intent_dict[intent]>20):
                     item_intent_new.append(intent)
                     all_intent_new.append(intent)
-
-            # for slot in item_slot_old:
-            #     slot_str=slot[0] + "+" + slot[1]
-            #     if(slot_str in sorted_slot_dict and sorted_slot_dict[slot_str]>10):
-            #         item_slot_new.append(slot)
-            #         all_slot_new.append(slot_str)
 
             if(len(item_intent_old)==len(item_intent_new)):
                 new_sample_set.append(item)
@@ -146,7 +138,7 @@ def preprocess(mode):
                 item_intent_new=[]
 
                 for intent in item_intent_old:
-                    if(sorted_intent_dict[intent]>32):
+                    if(sorted_intent_dict[intent]>20):
                         item_intent_new.append(intent)
 
                 processed_data[key][i][2]=item_intent_new
