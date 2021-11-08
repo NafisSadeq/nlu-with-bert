@@ -1,6 +1,6 @@
-# intuit-non-cui
+# NLU
 
-This is an example of natural language understanding on MultiWoz dataset. Specifically, we are performing multilabel-classification to solve the intent detection and slot filling problem. This code is based on the implementation provided by [ConvLab2](https://github.com/thu-coai/ConvLab-2.git)
+This is an example of natural language understanding on some benchmark datasets such as MultiWoz. Specifically, we are performing multilabel-classification to solve the intent detection and slot filling problem. Some code in this repository have been adapted from [ConvLab2](https://github.com/thu-coai/ConvLab-2.git)
 
 - [Installation](#installation)
 - [Usage](#usage)
