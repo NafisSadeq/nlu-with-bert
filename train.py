@@ -56,6 +56,8 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir)
 
     model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim, dataloader.intent_weight)
+    # model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim)
+    # print("Intent weight:",dataloader.intent_weight)
     model.to(DEVICE)
 
     if config['model']['finetune']:
