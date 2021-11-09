@@ -20,6 +20,6 @@
       "warmup_steps": 0,
       "weight_decay": 0.0,
       "dropout": 0.1,
-      "hidden_units": 768
+      "hidden_units": 1536
     }
   }
