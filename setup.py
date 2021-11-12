@@ -1,6 +1,3 @@
-'''
-setup.py for ConvLab-2
-'''
 import sys
 import os
 from setuptools import setup, find_packages
@@ -11,20 +8,20 @@ class LibTest(TestCommand):
 
     def run_tests(self):
         # import here, cause outside the eggs aren't loaded
-        ret = os.system("pytest --cov=ConvLab-2 tests/ --cov-report term-missing")
+        ret = os.system("pytest --cov=Nlu-Bert tests/ --cov-report term-missing")
         sys.exit(ret >> 8)
 
 setup(
-    name='ConvLab-2',
+    name='Nlu-Bert',
     version='1.0.0',
     packages=find_packages(exclude=[]),
-    license='Apache',
+    license='MIT',
     description='Task-oriented Dialog System Toolkits',
     long_description=open('README.md', encoding='UTF-8').read(),
     long_description_content_type="text/markdown",
     classifiers=[
                 'Development Status :: 2 - Pre-Alpha',
-                'License :: OSI Approved :: Apache Software License',
+                'License :: OSI Approved :: MIT Software License',
                 'Programming Language :: Python :: 3.5',
                 'Programming Language :: Python :: 3.6',
                 'Intended Audience :: Science/Research',
@@ -80,13 +77,7 @@ setup(
     cmdclass={'test': LibTest},
     entry_points={
         'console_scripts': [
-            "ConvLab-2-report=convlab2.scripts:report"
+            "Nlu-Bert-report=nlu.scripts:report"
         ]
     },
-    include_package_data=True,
-    url='https://github.com/thu-coai/ConvLab-2',
-    author='thu-coai',
-    author_email='thu-coai-developer@googlegroups.com',
-    python_requires='>=3.5',
-    zip_safe=False
 )
