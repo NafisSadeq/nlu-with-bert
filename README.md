@@ -3,6 +3,7 @@
 This is an example of natural language understanding on some benchmark datasets such as MultiWoz. Specifically, we are performing multilabel-classification to solve the intent detection and slot filling problem. Some code in this repository have been adapted from [ConvLab2](https://github.com/thu-coai/ConvLab-2.git)
 
 - [Installation](#installation)
+- [Dataset](#dataset)
 - [Usage](#usage)
 
 ## Installation
@@ -20,6 +21,10 @@ cd nlu-with-bert
 pip install -e .
 python -m spacy download en_core_web_sm
 ```
+
+## Dataset
+
+Currently experiments are supported on Multiwoz 2.1, Multiwoz 2.2 and Google SGD dataset. For running experiments on a particular dataset, we have to run preprocess.py available on that dataset folder. This will convert that dataset in a format which is suitable for our train and evaluation scripts. See below for detail usage. 
 
 ## Usage
 For training NLU model on MultiWoz 2.1 dataset
@@ -44,7 +49,7 @@ $ cd ..
 $ python train.py --config_path multiwoz21/configs/multiwoz_all_context.json
 ```
 
-The model will be saved under `output_dir` of config_file. Also, it will be zipped as `zipped_model_path` in config_file. 
+The model will be saved under `output_dir` of config_file. Also, it will be zipped as `zipped_model_path` in config_file. You can set the parameters associated with experiments in the config json file.
 
 #### Test a model
 
