@@ -10,6 +10,7 @@ class JointBERT(nn.Module):
         self.slot_num_labels = slot_dim
         self.intent_num_labels = intent_dim
         self.device = device
+        self.slot_weight = torch.tensor([1.]*slot_dim)
         self.intent_weight = intent_weight if intent_weight is not None else torch.tensor([1.]*intent_dim)
 
         print(model_config['pretrained_weights'])
@@ -52,7 +53,7 @@ class JointBERT(nn.Module):
 
         self.intent_loss_fct = torch.nn.BCEWithLogitsLoss(pos_weight=self.intent_weight)
         self.slot_loss_seq_fct = torch.nn.CrossEntropyLoss()
-        self.slot_loss_cls_fct = torch.nn.BCEWithLogitsLoss()
+        self.slot_loss_cls_fct = torch.nn.BCEWithLogitsLoss(pos_weight=self.slot_weight)
 
     def forward(self, word_seq_tensor, word_mask_tensor, tag_seq_tensor=None, tag_mask_tensor=None,
                 intent_tensor=None,slot_tensor=None, context_seq_tensor=None, context_mask_tensor=None):
@@ -80,19 +81,20 @@ class JointBERT(nn.Module):
             pooled_output = torch.cat([context_output, pooled_output], dim=-1)
 
         if self.hidden_units > 0:
-            sequence_output = nn.functional.relu(self.slot_hidden(self.dropout(sequence_output)))
-            pooled_output = nn.functional.relu(self.intent_hidden(self.dropout(pooled_output)))
+            sequence_output = nn.functional.relu(self.slot_hidden_seq(self.dropout(sequence_output)))
+            pooled_output_slot = nn.functional.relu(self.slot_hidden_cls(self.dropout(pooled_output)))
+            pooled_output_intent = nn.functional.relu(self.intent_hidden(self.dropout(pooled_output)))
 
         sequence_output = self.dropout(sequence_output)
         slot_logits_seq = self.slot_classifier_seq(sequence_output)
         outputs = (slot_logits_seq,)
 
-        pooled_output = self.dropout(pooled_output)
-        slot_logits_cls = self.slot_classifier_cls(pooled_output)
+        pooled_output_slot = self.dropout(pooled_output_slot)
+        slot_logits_cls = self.slot_classifier_cls(pooled_output_slot)
         outputs = outputs + (slot_logits_cls,)
 
-        # pooled_output = self.dropout(pooled_output)
-        intent_logits = self.intent_classifier(pooled_output)
+        pooled_output_intent = self.dropout(pooled_output_intent)
+        intent_logits = self.intent_classifier(pooled_output_intent)
         outputs = outputs + (intent_logits,)
 
         if tag_seq_tensor is not None:

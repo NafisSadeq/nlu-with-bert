@@ -143,17 +143,17 @@ if __name__ == '__main__':
                 val_slot_cls_loss += slot_loss_cls.item() * real_batch_size
                 val_intent_loss += intent_loss.item() * real_batch_size
                 for j in range(real_batch_size):
-                    tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],
-                                            ori_batch[j][0], ori_batch[j][-4])
+                    tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],ori_batch[j][0], ori_batch[j][-5])
                     slot_predicts = recover_slot(dataloader, slot_logits_cls[j])
                     intent_predicts = recover_intent(dataloader, intent_logits[j])
                     tag_labels = ori_batch[j][3]
                     intent_labels = ori_batch[j][2]
 
                     slot_labels = set()
-                    for tag in tag_labels:
-                        slot=tag.split('-')[1]
-                        slot_labels.add(slot)
+                    for tag in ori_batch[j][1]:
+                        if(tag!='O'):
+                            slot="-".join(tag.split('-')[1:])
+                            slot_labels.add(slot)
 
                     slot_labels=list(slot_labels)
 

@@ -62,6 +62,13 @@ class Dataloader:
             d.append(word_seq)
 
             d.append(self.seq_tag2id(tag_seq))
+            slots=set()
+            for tag in tag_seq:
+                if(tag!='O'):
+                    slot="-".join(tag.split('-')[1:])
+                    slots.add(slot)
+            slots=list(slots)
+            d.append(self.seq_slot2id(slots))
             d.append(self.seq_intent2id(d[2]))
             # d = (tokens, tags, intents, da2triples(turn["dialog_act"]), context(token id), new2ori, new_word_seq, tag2id_seq, intent2id_seq)
             if data_key=='train':
@@ -118,24 +125,22 @@ class Dataloader:
 
     def pad_batch(self, batch_data):
         batch_size = len(batch_data)
-        max_seq_len = max([len(x[-3]) for x in batch_data]) + 2
+        max_seq_len = max([len(x[-4]) for x in batch_data]) + 2
         word_mask_tensor = torch.zeros((batch_size, max_seq_len), dtype=torch.long)
         word_seq_tensor = torch.zeros((batch_size, max_seq_len), dtype=torch.long)
         tag_mask_tensor = torch.zeros((batch_size, max_seq_len), dtype=torch.long)
         tag_seq_tensor = torch.zeros((batch_size, max_seq_len), dtype=torch.long)
         intent_tensor = torch.zeros((batch_size, self.intent_dim), dtype=torch.float)
         slot_tensor = torch.zeros((batch_size, self.slot_dim), dtype=torch.float)
-        context_max_seq_len = max([len(x[-5]) for x in batch_data])
+        context_max_seq_len = max([len(x[-6]) for x in batch_data])
         context_mask_tensor = torch.zeros((batch_size, context_max_seq_len), dtype=torch.long)
         context_seq_tensor = torch.zeros((batch_size, context_max_seq_len), dtype=torch.long)
         for i in range(batch_size):
-            words = batch_data[i][-3]
-            tags = batch_data[i][-2]
+            words = batch_data[i][-4]
+            tags = batch_data[i][-3]
+            slots = batch_data[i][-2]
             intents = batch_data[i][-1]
-            slots = set()
-            for tag in tags:
-                slot=tag.split('-')[1]
-                slots.add(slot)
+
             words = ['[CLS]'] + words + ['[SEP]']
             indexed_tokens = self.tokenizer.convert_tokens_to_ids(words)
             sen_len = len(words)
@@ -147,8 +152,8 @@ class Dataloader:
                 intent_tensor[i, j] = 1.
             for j in slots:
                 slot_tensor[i, j] = 1.
-            context_len = len(batch_data[i][-5])
-            context_seq_tensor[i, :context_len] = torch.LongTensor([batch_data[i][-5]])
+            context_len = len(batch_data[i][-6])
+            context_seq_tensor[i, :context_len] = torch.LongTensor([batch_data[i][-6]])
             context_mask_tensor[i, :context_len] = torch.LongTensor([1] * context_len)
 
         return word_seq_tensor, tag_seq_tensor, slot_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor

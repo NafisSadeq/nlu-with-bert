@@ -15,7 +15,7 @@ def calculateF1(predict_golden,type):
     for item in predict_golden:
         predicts = item['predict']
         labels = item['golden']
-        if(type=="slot"):
+        if(type=="tag"):
             predicts = [[x[0], x[1], x[2].lower()] for x in predicts]
             labels = [[x[0], x[1], x[2].lower()] for x in labels]
         for ele in predicts:

@@ -35,7 +35,7 @@ if __name__ == '__main__':
     intent_vocab = json.load(open(os.path.join(data_dir, 'intent_vocab.json')))
     slot_vocab = json.load(open(os.path.join(data_dir, 'slot_vocab.json')))
     tag_vocab = json.load(open(os.path.join(data_dir, 'tag_vocab.json')))
-    dataloader = Dataloader(intent_vocab=intent_vocab, tag_vocab=tag_vocab,
+    dataloader = Dataloader(intent_vocab=intent_vocab,slot_vocab=slot_vocab, tag_vocab=tag_vocab,
                             pretrained_weights=config['model']['pretrained_weights'])
     print('intent num:', len(intent_vocab))
     print('slot num:', len(slot_vocab))
@@ -80,16 +80,17 @@ if __name__ == '__main__':
         intent_loss += batch_intent_loss.item() * real_batch_size
         for j in range(real_batch_size):
                 tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],
-                                            ori_batch[j][0], ori_batch[j][-4])
+                                            ori_batch[j][0], ori_batch[j][-5])
                 slot_predicts = recover_slot(dataloader, slot_logits_cls[j])
                 intent_predicts = recover_intent(dataloader, intent_logits[j])
                 tag_labels = ori_batch[j][3]
                 intent_labels = ori_batch[j][2]
 
                 slot_labels = set()
-                for tag in tag_labels:
-                    slot=tag.split('-')[1]
-                    slot_labels.add(slot)
+                for tag in ori_batch[j][1]:
+                    if(tag!='O'):
+                        slot="-".join(tag.split('-')[1:])
+                        slot_labels.add(slot)
 
                 slot_labels=list(slot_labels)
 
