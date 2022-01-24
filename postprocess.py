@@ -158,24 +158,15 @@ def recover_intent(dataloader, intent_logits):
             intents.append(intent)
     return intents
 
+def recover_slot(dataloader, slot_logits):
+    slots = []
+    for j in range(dataloader.slot_dim):
+        if slot_logits[j] > 0:
+            slot= dataloader.id2slot[j]
+            slots.append(slot)
+    return slots
 
-# def recover_slot(dataloader, tag_logits, tag_mask_tensor, ori_word_seq, new2ori):
-#     max_seq_len = tag_logits.size(0)
-#     intents = []
-#     tags = []
-#     for j in range(1, max_seq_len-1):
-#         if tag_mask_tensor[j] == 1:
-#             value, tag_id = torch.max(tag_logits[j], dim=-1)
-#             tags.append(dataloader.id2tag[tag_id.item()])
-#     recover_tags = []
-#     for i, tag in enumerate(tags):
-#         if new2ori[i] >= len(recover_tags):
-#             recover_tags.append(tag)
-#     tag_intent = tag2triples(ori_word_seq, recover_tags)
-#     intents += tag_intent
-#     return intents
-
-def recover_slot(dataloader, intent_logits, tag_logits, tag_mask_tensor, ori_word_seq, new2ori):
+def recover_tag(dataloader, intent_logits, tag_logits, tag_mask_tensor, ori_word_seq, new2ori):
     # tag_logits = [sequence_length, tag_dim]
     # intent_logits = [intent_dim]
     # tag_mask_tensor = [sequence_length]

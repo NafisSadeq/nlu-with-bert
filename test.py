@@ -7,7 +7,7 @@ import torch
 from dataloader import Dataloader
 from jointBERT import JointBERT
 from collections import OrderedDict
-from postprocess import is_slot_da, calculateF1, calculateF1perIntent, calculateF1perSlot, recover_intent, recover_slot
+from postprocess import is_slot_da, calculateF1, calculateF1perIntent, calculateF1perSlot, recover_intent, recover_slot, recover_tag
 
 def set_seed(seed):
     random.seed(seed)
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim)
+    model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.slot_dim, dataloader.intent_dim)
     model.load_state_dict(torch.load(os.path.join(output_dir, 'pytorch_model.bin'), DEVICE))
     model.to(DEVICE)
     model.eval()
@@ -58,50 +58,67 @@ if __name__ == '__main__':
     batch_size = config['model']['batch_size']
 
     data_key = 'test'
-    predict_golden = {'intent': [], 'slot': []}
-    slot_loss, intent_loss = 0, 0
+    predict_golden = {'intent': [], 'slot': [], 'tag': []}
+    slot_loss_seq, slot_loss_cls, intent_loss = 0, 0, 0
     for pad_batch, ori_batch, real_batch_size in dataloader.yield_batches(batch_size, data_key=data_key):
         pad_batch = tuple(t.to(DEVICE) for t in pad_batch)
-        word_seq_tensor, tag_seq_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor = pad_batch
+        word_seq_tensor, tag_seq_tensor, slot_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor = pad_batch
         if not config['model']['context']:
             context_seq_tensor, context_mask_tensor = None, None
 
         with torch.no_grad():
-            slot_logits, intent_logits, batch_slot_loss, batch_intent_loss = model.forward(word_seq_tensor,
+            slot_logits_seq, slot_logits_cls, intent_logits, batch_slot_loss_seq, batch_slot_loss_cls, batch_intent_loss = model.forward(word_seq_tensor,
                                                                                            word_mask_tensor,
                                                                                            tag_seq_tensor,
                                                                                            tag_mask_tensor,
                                                                                            intent_tensor,
+                                                                                           slot_tensor,
                                                                                            context_seq_tensor,
                                                                                            context_mask_tensor)
-        slot_loss += batch_slot_loss.item() * real_batch_size
+        slot_loss_seq += batch_slot_loss_seq.item() * real_batch_size
+        slot_loss_cls += batch_slot_loss_cls.item() * real_batch_size
         intent_loss += batch_intent_loss.item() * real_batch_size
         for j in range(real_batch_size):
-            slot_predicts = recover_slot(dataloader, intent_logits[j], slot_logits[j], tag_mask_tensor[j],
-                                      ori_batch[j][0], ori_batch[j][-4])
-            intent_predicts = recover_intent(dataloader, intent_logits[j])
-            slot_labels = ori_batch[j][3]
-            intent_labels = ori_batch[j][2]
+                tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],
+                                            ori_batch[j][0], ori_batch[j][-4])
+                slot_predicts = recover_slot(dataloader, slot_logits_cls[j])
+                intent_predicts = recover_intent(dataloader, intent_logits[j])
+                tag_labels = ori_batch[j][3]
+                intent_labels = ori_batch[j][2]
 
-            predict_golden['slot'].append({
-                'predict': [x for x in slot_predicts if is_slot_da(x)],
-                'golden': [x for x in slot_labels if is_slot_da(x)]
-            })
+                slot_labels = set()
+                for tag in tag_labels:
+                    slot=tag.split('-')[1]
+                    slot_labels.add(slot)
 
-            predict_golden['intent'].append({
-                'predict': intent_predicts,
-                'golden': intent_labels
-            })
+                slot_labels=list(slot_labels)
+
+                predict_golden['tag'].append({
+                    'predict': [x for x in tag_predicts if is_slot_da(x)],
+                    'golden': [x for x in tag_labels if is_slot_da(x)]
+                })
+
+                predict_golden['slot'].append({
+                    'predict': slot_predicts,
+                    'golden': slot_labels
+                })
+
+                predict_golden['intent'].append({
+                    'predict': intent_predicts,
+                    'golden': intent_labels
+                })
         print('[%d|%d] samples' % (len(predict_golden['slot']), len(dataloader.data[data_key])))
 
     total = len(dataloader.data[data_key])
-    slot_loss /= total
+    slot_loss_seq /= total
+    slot_loss_cls /= total
     intent_loss /= total
     print('%d samples %s' % (total, data_key))
-    print('\t slot loss:', slot_loss)
+    print('\t slot loss seq:', slot_loss_seq)
+    print('\t slot loss cls:', slot_loss_cls)
     print('\t intent loss:', intent_loss)
 
-    for x in ['intent', 'slot']:
+    for x in ['intent', 'slot','tag']:
         precision, recall, F1 = calculateF1(predict_golden[x],x)
         print('-' * 20 + x + '-' * 20)
         print('\t Precision: %.2f' % (100 * precision))
@@ -112,26 +129,18 @@ if __name__ == '__main__':
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
     recall = OrderedDict(sorted(recall.items(), key=lambda t: t[1],reverse=True))
     F1 = OrderedDict(sorted(F1.items(), key=lambda t: t[1],reverse=True))
-    # print('-' * 20 + "Intent" + '-' * 20)
-    # print('\t Precision: ',json.dumps(precision, indent=4))
-    # print('\t Recall: ',json.dumps(recall, indent=4))
-    # print('\t F1: ',json.dumps(F1, indent=4))
-
+  
     acc_per_intent = os.path.join(output_dir, 'evaluation_per_intent.json')
     with open(acc_per_intent,'w') as file:
         json.dump(precision,file, indent=4, ensure_ascii=False)
         json.dump(recall,file, indent=4, ensure_ascii=False)
         json.dump(F1,file, indent=4, ensure_ascii=False)
 
-    precision, recall, F1 = calculateF1perSlot(predict_golden['slot'])
+    precision, recall, F1 = calculateF1perSlot(predict_golden['tag'])
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
     recall = OrderedDict(sorted(recall.items(), key=lambda t: t[1],reverse=True))
     F1 = OrderedDict(sorted(F1.items(), key=lambda t: t[1],reverse=True))
-    # print('-' * 20 + "Slot" + '-' * 20)
-    # print('\t Precision: ',json.dumps(precision, indent=4))
-    # print('\t Recall: ',json.dumps(recall, indent=4))
-    # print('\t F1: ',json.dumps(F1, indent=4))
-
+  
     acc_per_slot = os.path.join(output_dir, 'evaluation_per_slot.json')
     with open(acc_per_slot,'w') as file:
         json.dump(precision,file, indent=4, ensure_ascii=False)
@@ -139,4 +148,4 @@ if __name__ == '__main__':
         json.dump(F1,file, indent=4, ensure_ascii=False)
 
     output_file = os.path.join(output_dir, 'output.json')
-    json.dump(predict_golden['slot'], open(output_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+    json.dump(predict_golden['tag'], open(output_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)

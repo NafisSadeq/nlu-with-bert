@@ -7,7 +7,7 @@ from collections import Counter
 
 
 class Dataloader:
-    def __init__(self, intent_vocab, tag_vocab, pretrained_weights):
+    def __init__(self, intent_vocab, slot_vocab, tag_vocab, pretrained_weights):
         """
         :param intent_vocab: list of all intents
         :param tag_vocab: list of all tags
@@ -16,9 +16,12 @@ class Dataloader:
         self.intent_vocab = intent_vocab
         self.tag_vocab = tag_vocab
         self.intent_dim = len(intent_vocab)
+        self.slot_dim = len(slot_vocab)
         self.tag_dim = len(tag_vocab)
         self.id2intent = dict([(i, x) for i, x in enumerate(intent_vocab)])
         self.intent2id = dict([(x, i) for i, x in enumerate(intent_vocab)])
+        self.id2slot = dict([(i, x) for i, x in enumerate(slot_vocab)])
+        self.slot2id = dict([(x, i) for i, x in enumerate(slot_vocab)])
         self.id2tag = dict([(i, x) for i, x in enumerate(tag_vocab)])
         self.tag2id = dict([(x, i) for i, x in enumerate(tag_vocab)])
         self.tokenizer = BertTokenizer.from_pretrained(pretrained_weights)
@@ -101,6 +104,12 @@ class Dataloader:
     def seq_id2tag(self, ids):
         return [self.id2tag[x] for x in ids]
 
+    def seq_slot2id(self, slots):
+        return [self.slot2id[x] for x in slots if x in self.slot2id]
+
+    def seq_id2slot(self, ids):
+        return [self.id2slot[x] for x in ids]
+
     def seq_intent2id(self, intents):
         return [self.intent2id[x] for x in intents if x in self.intent2id]
 
@@ -115,6 +124,7 @@ class Dataloader:
         tag_mask_tensor = torch.zeros((batch_size, max_seq_len), dtype=torch.long)
         tag_seq_tensor = torch.zeros((batch_size, max_seq_len), dtype=torch.long)
         intent_tensor = torch.zeros((batch_size, self.intent_dim), dtype=torch.float)
+        slot_tensor = torch.zeros((batch_size, self.slot_dim), dtype=torch.float)
         context_max_seq_len = max([len(x[-5]) for x in batch_data])
         context_mask_tensor = torch.zeros((batch_size, context_max_seq_len), dtype=torch.long)
         context_seq_tensor = torch.zeros((batch_size, context_max_seq_len), dtype=torch.long)
@@ -122,6 +132,10 @@ class Dataloader:
             words = batch_data[i][-3]
             tags = batch_data[i][-2]
             intents = batch_data[i][-1]
+            slots = set()
+            for tag in tags:
+                slot=tag.split('-')[1]
+                slots.add(slot)
             words = ['[CLS]'] + words + ['[SEP]']
             indexed_tokens = self.tokenizer.convert_tokens_to_ids(words)
             sen_len = len(words)
@@ -131,11 +145,13 @@ class Dataloader:
             tag_mask_tensor[i, 1:sen_len-1] = torch.LongTensor([1] * (sen_len-2))
             for j in intents:
                 intent_tensor[i, j] = 1.
+            for j in slots:
+                slot_tensor[i, j] = 1.
             context_len = len(batch_data[i][-5])
             context_seq_tensor[i, :context_len] = torch.LongTensor([batch_data[i][-5]])
             context_mask_tensor[i, :context_len] = torch.LongTensor([1] * context_len)
 
-        return word_seq_tensor, tag_seq_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor
+        return word_seq_tensor, tag_seq_tensor, slot_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor
 
     def get_train_batch(self, batch_size):
         batch_data = random.choices(self.data['train'], k=batch_size)
