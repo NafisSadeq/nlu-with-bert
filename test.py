@@ -119,6 +119,12 @@ if __name__ == '__main__':
     print('\t slot loss cls:', slot_loss_cls)
     print('\t intent loss:', intent_loss)
 
+    result_list=[]
+    result_list.append('slot loss seq,'+str(slot_loss_seq))
+    result_list.append('slot loss cls,'+str(slot_loss_cls))
+    result_list.append('intent loss,'+str(intent_loss))
+    result_list.append("---,---")
+
     for x in ['intent', 'slot','tag']:
         precision, recall, F1 = calculateF1(predict_golden[x],x)
         print('-' * 20 + x + '-' * 20)
@@ -126,10 +132,27 @@ if __name__ == '__main__':
         print('\t Recall: %.2f' % (100 * recall))
         print('\t F1: %.2f' % (100 * F1))
 
+        result_list.append(x+' precision,'+str(100 * precision))
+        result_list.append(x+' recall,'+str(100 * recall))
+        result_list.append(x+' f1,'+str(100 * F1))
+        result_list.append("---,---")
+
     precision, recall, F1 = calculateF1perIntent(predict_golden['intent'])
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
     recall = OrderedDict(sorted(recall.items(), key=lambda t: t[1],reverse=True))
     F1 = OrderedDict(sorted(F1.items(), key=lambda t: t[1],reverse=True))
+
+    # for key,value in F1.items():
+    #     result_list.append(key+' f1pI,'+str(value))
+    # result_list.append("---,---")
+
+    intent_macro_precision = sum(precision.values()) / len(precision)
+    intent_macro_recall = sum(recall.values()) / len(recall)
+    intent_macro_f1 = sum(F1.values()) / len(F1)
+    result_list.append('intent macro precision,'+str(100 * intent_macro_precision))
+    result_list.append('intent macro recall,'+str(100 * intent_macro_recall))
+    result_list.append('intent macro f1,'+str(100 * intent_macro_f1))
+    result_list.append("---,---")
   
     acc_per_intent = os.path.join(output_dir, 'evaluation_per_intent.json')
     with open(acc_per_intent,'w') as file:
@@ -137,16 +160,56 @@ if __name__ == '__main__':
         json.dump(recall,file, indent=4, ensure_ascii=False)
         json.dump(F1,file, indent=4, ensure_ascii=False)
 
+    precision, recall, F1 = calculateF1perSlot(predict_golden['slot'])
+    precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
+    recall = OrderedDict(sorted(recall.items(), key=lambda t: t[1],reverse=True))
+    F1 = OrderedDict(sorted(F1.items(), key=lambda t: t[1],reverse=True))
+
+    # for key,value in F1.items():
+    #     result_list.append(key+' f1pS,'+str(value))
+    # result_list.append("---,---")
+
+    slot_macro_precision = sum(precision.values()) / len(precision)
+    slot_macro_recall = sum(recall.values()) / len(recall)
+    slot_macro_f1 = sum(F1.values()) / len(F1)
+    result_list.append('slot macro precision,'+str(100 * slot_macro_precision))
+    result_list.append('slot macro recall,'+str(100 * slot_macro_recall))
+    result_list.append('slot macro f1,'+str(100 * slot_macro_f1))
+    result_list.append("---,---")
+
     precision, recall, F1 = calculateF1perSlot(predict_golden['tag'])
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
     recall = OrderedDict(sorted(recall.items(), key=lambda t: t[1],reverse=True))
     F1 = OrderedDict(sorted(F1.items(), key=lambda t: t[1],reverse=True))
+
+    # for key,value in F1.items():
+    #     result_list.append(key+' f1pS,'+str(value))
+    # result_list.append("---,---")
+
+    slot_macro_precision = sum(precision.values()) / len(precision)
+    slot_macro_recall = sum(recall.values()) / len(recall)
+    slot_macro_f1 = sum(F1.values()) / len(F1)
+    result_list.append('tag macro precision,'+str(100 * slot_macro_precision))
+    result_list.append('tag macro recall,'+str(100 * slot_macro_recall))
+    result_list.append('tag macro f1,'+str(100 * slot_macro_f1))
+    result_list.append("---,---")
   
     acc_per_slot = os.path.join(output_dir, 'evaluation_per_slot.json')
     with open(acc_per_slot,'w') as file:
         json.dump(precision,file, indent=4, ensure_ascii=False)
         json.dump(recall,file, indent=4, ensure_ascii=False)
         json.dump(F1,file, indent=4, ensure_ascii=False)
+
+    output_intent = os.path.join(output_dir, 'output_intent.json')
+    output_slot = os.path.join(output_dir, 'output_slot.json')
+    json.dump(predict_golden['intent'], open(output_intent, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+    json.dump(predict_golden['slot'], open(output_slot, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+
+    output_result = os.path.join(output_dir, 'output_result.csv')
+
+    with open(output_result,'w') as file:
+        for result in result_list:
+            file.write(result+"\n")
 
     output_file = os.path.join(output_dir, 'output.json')
     json.dump(predict_golden['tag'], open(output_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
