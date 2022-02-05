@@ -7,7 +7,7 @@ import torch
 from dataloader import Dataloader
 from jointBERT import JointBERT
 from collections import OrderedDict
-from postprocess import is_slot_da, calculateF1, calculateF1perIntent, calculateF1perSlot, recover_intent, recover_slot, recover_tag
+from postprocess import is_slot_da, calculateF1, calculateF1perIntent,calculateF1perSlotCLS, calculateF1perSlot, recover_intent, recover_slot, recover_tag
 
 def set_seed(seed):
     random.seed(seed)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         json.dump(recall,file, indent=4, ensure_ascii=False)
         json.dump(F1,file, indent=4, ensure_ascii=False)
 
-    precision, recall, F1 = calculateF1perSlot(predict_golden['slot'])
+    precision, recall, F1 = calculateF1perSlotCLS(predict_golden['slot'])
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
     recall = OrderedDict(sorted(recall.items(), key=lambda t: t[1],reverse=True))
     F1 = OrderedDict(sorted(F1.items(), key=lambda t: t[1],reverse=True))

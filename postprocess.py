@@ -1,6 +1,6 @@
 import re
 import torch
-
+import json
 
 def is_slot_da(da):
     tag_da = {'Inform', 'Select', 'Recommend', 'NoOffer', 'NoBook', 'OfferBook', 'OfferBooked', 'Book'}
@@ -8,6 +8,29 @@ def is_slot_da(da):
     if da[0].split('-')[1] in tag_da and da[1] not in not_tag_slot:
         return True
     return False
+
+def load_slot_freq():
+    slotFreq={}
+    with open('multiwoz21/slot_freq.json','r') as file:
+        slotFreq=json.loads(file.read())
+    return slotFreq
+
+def filter_dict(prec,rec,f1):
+
+    slot_freq=load_slot_freq()
+    new_prec={}
+    new_rec={}
+    new_f1={}
+
+    for key,value in slot_freq.items():
+
+        if(value>=200):
+            new_prec[key]=prec[key]
+            new_rec[key]=rec[key]
+            new_f1[key]=f1[key]
+
+
+    return new_prec,new_rec,new_f1
 
 
 def calculateF1(predict_golden,type):
@@ -71,6 +94,50 @@ def calculateF1perIntent(predict_golden):
         precision[key] = 1.0 * TP[key] / (TP[key] + FP[key]) if (TP[key]+ FP[key]) else 0.
         recall[key] = 1.0 * TP[key] / (TP[key] + FN[key]) if ((TP[key]+ FN[key])) else 0.
         F1[key] = 2.0 * precision[key] * recall[key] / (precision[key] + recall[key]) if precision[key] + recall[key] else 0.
+    
+    return precision, recall, F1
+
+def calculateF1perSlotCLS(predict_golden):
+    TP={}
+    FP={}
+    FN={}
+    precision={}
+    recall={}
+    F1={}
+    item_set={}
+    for item in predict_golden:
+        predicts = item['predict']
+        labels = item['golden']
+        for ele in predicts:
+            item_set[ele]=1
+            if ele in labels:
+                if ele not in TP:
+                    TP[ele]=1
+                else:
+                    TP[ele]+=1
+            else:
+                if ele not in FP:
+                    FP[ele]=1
+                else:
+                    FP[ele]+=1
+        for ele in labels:
+            item_set[ele]=1
+            if ele not in predicts:
+                if ele not in FN:
+                    FN[ele]=1
+                else:
+                    FN[ele]+=1
+    for key,value in item_set.items():
+        if(key not in TP):
+            TP[key]=0
+        if(key not in FP):
+            FP[key]=0
+        if(key not in FN):
+            FN[key]=0      
+        precision[key] = 1.0 * TP[key] / (TP[key] + FP[key]) if (TP[key]+ FP[key]) else 0.
+        recall[key] = 1.0 * TP[key] / (TP[key] + FN[key]) if ((TP[key]+ FN[key])) else 0.
+        F1[key] = 2.0 * precision[key] * recall[key] / (precision[key] + recall[key]) if precision[key] + recall[key] else 0.
+    # precision, recall, F1=filter_dict(precision, recall, F1)
     return precision, recall, F1
 
 def calculateF1perSlot(predict_golden):
@@ -117,6 +184,7 @@ def calculateF1perSlot(predict_golden):
         precision[key] = 1.0 * TP[key] / (TP[key] + FP[key]) if (TP[key]+ FP[key]) else 0.
         recall[key] = 1.0 * TP[key] / (TP[key] + FN[key]) if ((TP[key]+ FN[key])) else 0.
         F1[key] = 2.0 * precision[key] * recall[key] / (precision[key] + recall[key]) if precision[key] + recall[key] else 0.
+    # precision, recall, F1=filter_dict(precision, recall, F1)
     return precision, recall, F1
 
 def tag2triples(word_seq, tag_seq):
