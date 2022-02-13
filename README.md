@@ -61,6 +61,14 @@ $ python test.py --config_path multiwoz21/configs/multiwoz_all_context.json
 
 The result (`output.json`) will be saved under `output_dir` of config_file. 
 
+#### Test different baselines
 
+Run script as below:
+
+```
+bash script.sh ${DEVICE_ID} ${MULTIWOZ_ID} ${BACKBONE_NAME}
+```
+
+`MULTIWOZ_ID` is 21 or 22; `BACKBONE_NAME` is '' 'roberta_' 'finbert_' or 'todbert_'.
 
 
