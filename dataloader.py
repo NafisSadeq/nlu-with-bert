@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import random
-from transformers import BertTokenizer
 import math
 from collections import Counter
 
@@ -24,7 +23,22 @@ class Dataloader:
         self.slot2id = dict([(x, i) for i, x in enumerate(slot_vocab)])
         self.id2tag = dict([(i, x) for i, x in enumerate(tag_vocab)])
         self.tag2id = dict([(x, i) for i, x in enumerate(tag_vocab)])
-        self.tokenizer = BertTokenizer.from_pretrained(pretrained_weights)
+        if 'bert-base-uncased' in pretrained_weights:
+            from transformers import BertTokenizer 
+            self.tokenizer = BertTokenizer.from_pretrained(pretrained_weights)
+            self.tokenizer_type = "bert"
+        elif 'roberta-base' in pretrained_weights:
+            from transformers import RobertaTokenizer 
+            self.tokenizer = RobertaTokenizer.from_pretrained(pretrained_weights)
+            self.tokenizer_type = "roberta"
+        elif 'albert-base' in pretrained_weights:
+            from transformers import AlbertTokenizer 
+            self.tokenizer = AlbertTokenizer.from_pretrained(pretrained_weights)
+            self.tokenizer_type = "albert"
+        else:
+            from transformers import AutoTokenizer 
+            self.tokenizer = AutoTokenizer.from_pretrained(pretrained_weights, use_fast=False)
+            self.tokenizer_type = "bert"
         self.data = {}
         self.intent_weight = [1] * len(self.intent2id)
 
@@ -89,21 +103,44 @@ class Dataloader:
         split_tokens = []
         new_tag_seq = []
         new2ori = {}
-        basic_tokens = self.tokenizer.basic_tokenizer.tokenize(' '.join(word_seq))
-        accum = ''
-        i, j = 0, 0
-        for i, token in enumerate(basic_tokens):
-            if (accum + token).lower() == word_seq[j].lower():
-                accum = ''
-            else:
-                accum += token
-            for sub_token in self.tokenizer.wordpiece_tokenizer.tokenize(basic_tokens[i]):
-                new2ori[len(new_tag_seq)] = j
-                split_tokens.append(sub_token)
-                new_tag_seq.append(tag_seq[j])
-            if accum == '':
-                j += 1
+        if self.tokenizer_type == "bert":
+            basic_tokens = self.tokenizer.basic_tokenizer.tokenize(' '.join(word_seq))
+            accum = ''
+            i, j = 0, 0
+            for i, token in enumerate(basic_tokens):
+                if (accum + token).lower() == word_seq[j].lower():
+                    accum = ''
+                else:
+                    accum += token
+                for sub_token in self.tokenizer.wordpiece_tokenizer.tokenize(basic_tokens[i]):
+                    new2ori[len(new_tag_seq)] = j
+                    split_tokens.append(sub_token)
+                    new_tag_seq.append(tag_seq[j])
+                if accum == '':
+                    j += 1
+        elif self.tokenizer_type == "roberta" or self.tokenizer_type == "albert":
+            split_tokens = self.tokenizer.tokenize(' '.join(word_seq))
+            i, j = 0, 0
+            for i, token in enumerate(split_tokens):
+                if i == 0 or not self._is_roberta_subword(token):
+                    j += 1
+                new2ori[len(new_tag_seq)] = j-1
+                try:
+                    new_tag_seq.append(tag_seq[j-1])
+                except:
+                    import pdb; pdb.set_trace()
+
         return split_tokens, new_tag_seq, new2ori
+
+
+    def _is_roberta_subword(self, token):
+        if self.tokenizer_type == 'roberta':
+            if not self.tokenizer.convert_tokens_to_string(token).startswith(" "):
+                return True
+        elif self.tokenizer_type == 'albert':
+            if not token.startswith("_"):
+                return True
+        return False
 
     def seq_tag2id(self, tags):
         return [self.tag2id[x] if x in self.tag2id else self.tag2id['O'] for x in tags]

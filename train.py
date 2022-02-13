@@ -21,7 +21,10 @@ def set_seed(seed):
 parser = argparse.ArgumentParser(description="Train a model.")
 parser.add_argument('--config_path',
                     help='path to config file')
-
+parser.add_argument('--seed', type=int, default=2019,
+                    help='random seed')
+parser.add_argument('--freeze', type=int, default=0,
+                    help='freeze encoder or not')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -31,7 +34,7 @@ if __name__ == '__main__':
     log_dir = config['log_dir']
     DEVICE = config['DEVICE']
 
-    set_seed(config['seed'])
+    set_seed(args.seed)
 
     print("Data Dir:",data_dir)
 
@@ -60,6 +63,10 @@ if __name__ == '__main__':
     # print("Intent weight:",dataloader.intent_weight)
     model.to(DEVICE)
 
+    if args.freeze:
+        for name, param in model.bert.named_parameters():
+            param.requires_grad = False
+            
     if config['model']['finetune']:
         no_decay = ['bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [

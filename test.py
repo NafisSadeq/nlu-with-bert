@@ -18,7 +18,10 @@ def set_seed(seed):
 parser = argparse.ArgumentParser(description="Test a model.")
 parser.add_argument('--config_path',
                     help='path to config file')
-
+parser.add_argument('--seed', type=int, default=2019, 
+                    help='random seed')
+parser.add_argument('--freeze', type=int, default=0,
+                    help='freeze encoder or not')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -28,7 +31,7 @@ if __name__ == '__main__':
     log_dir = config['log_dir']
     DEVICE = config['DEVICE']
 
-    set_seed(config['seed'])
+    set_seed(args.seed)
        
     print("Data Dir:",data_dir)
 
@@ -79,35 +82,35 @@ if __name__ == '__main__':
         slot_loss_cls += batch_slot_loss_cls.item() * real_batch_size
         intent_loss += batch_intent_loss.item() * real_batch_size
         for j in range(real_batch_size):
-                tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],
-                                            ori_batch[j][0], ori_batch[j][-5])
-                slot_predicts = recover_slot(dataloader, slot_logits_cls[j])
-                intent_predicts = recover_intent(dataloader, intent_logits[j])
-                tag_labels = ori_batch[j][3]
-                intent_labels = ori_batch[j][2]
+            tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],
+                                        ori_batch[j][0], ori_batch[j][-5])
+            slot_predicts = recover_slot(dataloader, slot_logits_cls[j])
+            intent_predicts = recover_intent(dataloader, intent_logits[j])
+            tag_labels = ori_batch[j][3]
+            intent_labels = ori_batch[j][2]
 
-                slot_labels = set()
-                for tag in ori_batch[j][1]:
-                    if(tag!='O'):
-                        slot="-".join(tag.split('-')[1:])
-                        slot_labels.add(slot)
+            slot_labels = set()
+            for tag in ori_batch[j][1]:
+                if(tag!='O'):
+                    slot="-".join(tag.split('-')[1:])
+                    slot_labels.add(slot)
 
-                slot_labels=list(slot_labels)
+            slot_labels=list(slot_labels)
 
-                predict_golden['tag'].append({
-                    'predict': [x for x in tag_predicts if is_slot_da(x)],
-                    'golden': [x for x in tag_labels if is_slot_da(x)]
-                })
+            predict_golden['tag'].append({
+                'predict': [x for x in tag_predicts if is_slot_da(x)],
+                'golden': [x for x in tag_labels if is_slot_da(x)]
+            })
 
-                predict_golden['slot'].append({
-                    'predict': slot_predicts,
-                    'golden': slot_labels
-                })
+            predict_golden['slot'].append({
+                'predict': slot_predicts,
+                'golden': slot_labels
+            })
 
-                predict_golden['intent'].append({
-                    'predict': intent_predicts,
-                    'golden': intent_labels
-                })
+            predict_golden['intent'].append({
+                'predict': intent_predicts,
+                'golden': intent_labels
+            })
         print('[%d|%d] samples' % (len(predict_golden['slot']), len(dataloader.data[data_key])))
 
     total = len(dataloader.data[data_key])
@@ -119,12 +122,17 @@ if __name__ == '__main__':
     print('\t slot loss cls:', slot_loss_cls)
     print('\t intent loss:', intent_loss)
 
-    for x in ['intent', 'slot','tag']:
-        precision, recall, F1 = calculateF1(predict_golden[x],x)
-        print('-' * 20 + x + '-' * 20)
-        print('\t Precision: %.2f' % (100 * precision))
-        print('\t Recall: %.2f' % (100 * recall))
-        print('\t F1: %.2f' % (100 * F1))
+    with open(os.path.join(output_dir, f'results_freeze_{args.freeze}_seed_{args.seed}.txt'), "w") as f:
+        for x in ['intent', 'slot', 'tag']:
+            precision, recall, F1 = calculateF1(predict_golden[x],x)
+            print('-' * 20 + x + '-' * 20)
+            f.write('-' * 20 + x + '-' * 20 + '\n')
+            print('\t Precision: %.2f' % (100 * precision))
+            f.write('\t Precision: %.2f' % (100 * precision) + '\n')
+            print('\t Recall: %.2f' % (100 * recall))
+            f.write('\t Recall: %.2f' % (100 * recall) + '\n')
+            print('\t F1: %.2f' % (100 * F1))
+            f.write('\t F1: %.2f' % (100 * F1) + '\n')
 
     precision, recall, F1 = calculateF1perIntent(predict_golden['intent'])
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
