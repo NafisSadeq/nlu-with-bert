@@ -11,19 +11,20 @@ from dataloader import Dataloader
 from jointBERT import JointBERT
 from postprocess import is_slot_da, calculateF1, recover_intent, recover_slot, recover_tag
 
-
+# set random seed
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-
+# argument setup
 parser = argparse.ArgumentParser(description="Train a model.")
 parser.add_argument('--config_path',
                     help='path to config file')
 
 
 if __name__ == '__main__':
+    # load arguments
     args = parser.parse_args()
     config = json.load(open(args.config_path))
     data_dir = config['data_dir']
@@ -34,7 +35,8 @@ if __name__ == '__main__':
     set_seed(config['seed'])
 
     print("Data Dir:",data_dir)
-
+    
+    # load data
     intent_vocab = json.load(open(os.path.join(data_dir, 'intent_vocab.json')))
     slot_vocab = json.load(open(os.path.join(data_dir, 'slot_vocab.json')))
     tag_vocab = json.load(open(os.path.join(data_dir, 'tag_vocab.json')))
@@ -43,6 +45,7 @@ if __name__ == '__main__':
     print('intent num:', len(intent_vocab))
     print('slot num:', len(slot_vocab))
     print('tag num:', len(tag_vocab))
+    
     for data_key in ['train', 'val', 'test']:
         dataloader.load_data(json.load(open(os.path.join(data_dir, '{}_data.json'.format(data_key)))), data_key,
                              cut_sen_len=config['cut_sen_len'], use_bert_tokenizer=config['use_bert_tokenizer'])
@@ -55,11 +58,13 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(log_dir)
 
+    # load model
     model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.slot_dim, dataloader.intent_dim, dataloader.intent_weight)
     # model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim)
     # print("Intent weight:",dataloader.intent_weight)
     model.to(DEVICE)
 
+    # specify model training optimizer
     if config['model']['finetune']:
         no_decay = ['bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
@@ -92,25 +97,33 @@ if __name__ == '__main__':
 
     writer.add_text('config', json.dumps(config))
 
+    # start model training
     for step in range(1, max_step + 1):
+        # change model status
         model.train()
+        # load data batch
         batched_data = dataloader.get_train_batch(batch_size)
         batched_data = tuple(t.to(DEVICE) for t in batched_data)
         word_seq_tensor, tag_seq_tensor, slot_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor = batched_data
         if not config['model']['context']:
             context_seq_tensor, context_mask_tensor = None, None
+        # model prediction for slots & intents
         _, _, _, slot_loss_seq, slot_loss_cls, intent_loss = model.forward(word_seq_tensor, word_mask_tensor, tag_seq_tensor, tag_mask_tensor,
                                                      intent_tensor, slot_tensor, context_seq_tensor, context_mask_tensor)
+        # loss calculation
         train_slot_loss_seq += slot_loss_seq.item()
         train_slot_loss_cls += slot_loss_cls.item()
         train_intent_loss += intent_loss.item()
         loss = slot_loss_seq + slot_loss_cls + intent_loss
+        # gradient calculation and weight update
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         if config['model']['finetune']:
             scheduler.step()  # Update learning rate schedule
         model.zero_grad()
+        
+        # print out
         if step % check_step == 0:
             train_slot_loss_seq = train_slot_loss_seq / check_step
             train_slot_loss_cls = train_slot_loss_cls / check_step
@@ -123,13 +136,17 @@ if __name__ == '__main__':
             predict_golden = {'intent': [], 'slot': [], 'tag': []}
 
             val_slot_seq_loss, val_slot_cls_loss, val_intent_loss = 0, 0, 0
+            
+            # change model status for evaluation
             model.eval()
             for pad_batch, ori_batch, real_batch_size in dataloader.yield_batches(batch_size, data_key='val'):
+                # load data batch
                 pad_batch = tuple(t.to(DEVICE) for t in pad_batch)
                 word_seq_tensor, tag_seq_tensor,slot_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor = pad_batch
                 if not config['model']['context']:
                     context_seq_tensor, context_mask_tensor = None, None
-
+                
+                # model prediction for slots & intents
                 with torch.no_grad():
                     slot_logits_seq, slot_logits_cls, intent_logits, slot_loss_seq, slot_loss_cls , intent_loss = model.forward(word_seq_tensor,
                                                                                        word_mask_tensor,
@@ -139,9 +156,12 @@ if __name__ == '__main__':
                                                                                        slot_tensor,
                                                                                        context_seq_tensor,
                                                                                        context_mask_tensor)
+                # loss calculation
                 val_slot_seq_loss += slot_loss_seq.item() * real_batch_size
                 val_slot_cls_loss += slot_loss_cls.item() * real_batch_size
                 val_intent_loss += intent_loss.item() * real_batch_size
+                
+                # metric calculation
                 for j in range(real_batch_size):
                     tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],ori_batch[j][0], ori_batch[j][-5])
                     slot_predicts = recover_slot(dataloader, slot_logits_cls[j])
@@ -186,6 +206,8 @@ if __name__ == '__main__':
             print('\t slot loss seq:', val_slot_seq_loss)
             print('\t slot loss cls:', val_slot_cls_loss)
             print('\t intent loss:', val_intent_loss)
+            
+            # logging
 
             writer.add_scalar('intent_loss/train', train_intent_loss, global_step=step)
             writer.add_scalar('intent_loss/val', val_intent_loss, global_step=step)
@@ -218,6 +240,7 @@ if __name__ == '__main__':
     writer.add_text('val overall F1', '%.2f' % (100 * best_val_f1))
     writer.close()
 
+    # model saving
     model_path = os.path.join(output_dir, 'pytorch_model.bin')
     zip_path = config['zipped_model_path']
     print('zip model to', zip_path)
