@@ -9,18 +9,20 @@ from jointBERT import JointBERT
 from collections import OrderedDict
 from postprocess import is_slot_da, calculateF1, calculateF1perIntent,calculateF1perSlotCLS, calculateF1perSlot, recover_intent, recover_slot, recover_tag
 
+# set random seed
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-
+# arguments
 parser = argparse.ArgumentParser(description="Test a model.")
 parser.add_argument('--config_path',
                     help='path to config file')
 
 
 if __name__ == '__main__':
+    # load arguments
     args = parser.parse_args()
     config = json.load(open(args.config_path))
     data_dir = config['data_dir']
@@ -31,7 +33,8 @@ if __name__ == '__main__':
     set_seed(config['seed'])
        
     print("Data Dir:",data_dir)
-
+    
+    # load data
     intent_vocab = json.load(open(os.path.join(data_dir, 'intent_vocab.json')))
     slot_vocab = json.load(open(os.path.join(data_dir, 'slot_vocab.json')))
     tag_vocab = json.load(open(os.path.join(data_dir, 'tag_vocab.json')))
@@ -50,6 +53,7 @@ if __name__ == '__main__':
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
+    # load model
     model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.slot_dim, dataloader.intent_dim)
     model.load_state_dict(torch.load(os.path.join(output_dir, 'pytorch_model.bin'), DEVICE))
     model.to(DEVICE)
@@ -60,12 +64,15 @@ if __name__ == '__main__':
     data_key = 'test'
     predict_golden = {'intent': [], 'slot': [], 'tag': []}
     slot_loss_seq, slot_loss_cls, intent_loss = 0, 0, 0
+    
+    # start evaluation
     for pad_batch, ori_batch, real_batch_size in dataloader.yield_batches(batch_size, data_key=data_key):
+        # load data batch
         pad_batch = tuple(t.to(DEVICE) for t in pad_batch)
         word_seq_tensor, tag_seq_tensor, slot_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor = pad_batch
         if not config['model']['context']:
             context_seq_tensor, context_mask_tensor = None, None
-
+        # model prediction for slots & intents
         with torch.no_grad():
             slot_logits_seq, slot_logits_cls, intent_logits, batch_slot_loss_seq, batch_slot_loss_cls, batch_intent_loss = model.forward(word_seq_tensor,
                                                                                            word_mask_tensor,
@@ -75,9 +82,12 @@ if __name__ == '__main__':
                                                                                            slot_tensor,
                                                                                            context_seq_tensor,
                                                                                            context_mask_tensor)
+        # loss calculation
         slot_loss_seq += batch_slot_loss_seq.item() * real_batch_size
         slot_loss_cls += batch_slot_loss_cls.item() * real_batch_size
         intent_loss += batch_intent_loss.item() * real_batch_size
+        
+        # metrics calculation
         for j in range(real_batch_size):
                 tag_predicts = recover_tag(dataloader, intent_logits[j], slot_logits_seq[j], tag_mask_tensor[j],
                                             ori_batch[j][0], ori_batch[j][-5])
@@ -196,6 +206,7 @@ if __name__ == '__main__':
     result_list.append('tag macro f1,'+str(100 * slot_macro_f1))
     result_list.append("---,---")
   
+    # result logging
     acc_per_slot = os.path.join(output_dir, 'evaluation_per_slot.json')
     with open(acc_per_slot,'w') as file:
         per_slot_dict={}
