@@ -9,28 +9,28 @@ def is_slot_da(da):
         return True
     return False
 
-def load_slot_freq():
-    slotFreq={}
-    with open('multiwoz21/slot_freq.json','r') as file:
-        slotFreq=json.loads(file.read())
-    return slotFreq
+# def load_slot_freq():
+#     slotFreq={}
+#     with open('multiwoz21/slot_freq.json','r') as file:
+#         slotFreq=json.loads(file.read())
+#     return slotFreq
 
-def filter_dict(prec,rec,f1):
+# def filter_dict(prec,rec,f1):
 
-    slot_freq=load_slot_freq()
-    new_prec={}
-    new_rec={}
-    new_f1={}
+#     slot_freq=load_slot_freq()
+#     new_prec={}
+#     new_rec={}
+#     new_f1={}
 
-    for key,value in slot_freq.items():
+#     for key,value in slot_freq.items():
 
-        if(value>=200):
-            new_prec[key]=prec[key]
-            new_rec[key]=rec[key]
-            new_f1[key]=f1[key]
+#         if(value>=200):
+#             new_prec[key]=prec[key]
+#             new_rec[key]=rec[key]
+#             new_f1[key]=f1[key]
 
 
-    return new_prec,new_rec,new_f1
+#     return new_prec,new_rec,new_f1
 
 
 def calculateF1(predict_golden,type):
