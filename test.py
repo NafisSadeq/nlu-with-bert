@@ -156,9 +156,11 @@ if __name__ == '__main__':
   
     acc_per_intent = os.path.join(output_dir, 'evaluation_per_intent.json')
     with open(acc_per_intent,'w') as file:
-        json.dump(precision,file, indent=4, ensure_ascii=False)
-        json.dump(recall,file, indent=4, ensure_ascii=False)
-        json.dump(F1,file, indent=4, ensure_ascii=False)
+        per_slot_dict={}
+        per_slot_dict["precision"]=precision
+        per_slot_dict["recall"]=recall
+        per_slot_dict["F1"]=F1
+        json.dump(per_slot_dict,file, indent=4, ensure_ascii=False)
 
     precision, recall, F1 = calculateF1perSlotCLS(predict_golden['slot'])
     precision = OrderedDict(sorted(precision.items(), key=lambda t: t[1],reverse=True))
@@ -196,9 +198,11 @@ if __name__ == '__main__':
   
     acc_per_slot = os.path.join(output_dir, 'evaluation_per_slot.json')
     with open(acc_per_slot,'w') as file:
-        json.dump(precision,file, indent=4, ensure_ascii=False)
-        json.dump(recall,file, indent=4, ensure_ascii=False)
-        json.dump(F1,file, indent=4, ensure_ascii=False)
+        per_slot_dict={}
+        per_slot_dict["precision"]=precision
+        per_slot_dict["recall"]=recall
+        per_slot_dict["F1"]=F1
+        json.dump(per_slot_dict,file, indent=4, ensure_ascii=False)
 
     output_intent = os.path.join(output_dir, 'output_intent.json')
     output_slot = os.path.join(output_dir, 'output_slot.json')
